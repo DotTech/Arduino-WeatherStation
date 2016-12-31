@@ -23,14 +23,27 @@ void sleep(long miliseconds)
 {
 	if (just_woke)
 	{
+		Serial.println("sleep(): just_woke=true, return..");
 		return;
 	}
 
+	Serial.println("Call ESP_enter_sleep");
 	ESP_enter_sleep_mode(miliseconds);
 
 	delay(2000);
 
+	Serial.println("Call arduino_sleep()");
+	delay(1000);
+
+	if (just_woke)
+	{
+		Serial.println("sleep(): [2] just_woke=true, return..");
+		return;
+	}
+
 	arduino_sleep();
+
+	Serial.println("Continue after sleep");
 }
 
 // Disable analog to digital converter.
@@ -56,6 +69,7 @@ void arduino_sleep()
 // Wake up interrupt.
 void wakeup_interrupt()
 {
+	Serial.println("Wake up interup!");
 	just_woke = true;
 }
 

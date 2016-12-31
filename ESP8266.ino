@@ -14,6 +14,11 @@ void ESP_setup()
 // @miliseconds: sleep timeout in miliseconds.
 void ESP_enter_sleep_mode(long miliseconds)
 {
+	if (just_woke)
+	{
+		return;
+	}
+
 	ESP.print("AT+GSLP=");
 	ESP.print(miliseconds);
 	ESP.print(CRLF);
@@ -21,8 +26,9 @@ void ESP_enter_sleep_mode(long miliseconds)
 	// Try entering sleep mode until we succeed.
 	bool read_ok = ESP_read_ok();
 
-	Serial.print("Read ok: ");
-	Serial.println(read_ok);
+	Serial.print("ESP: read_ok=");
+	Serial.print(read_ok);
+	Serial.println(" - DONE");
 
 	if (!read_ok)
 	{
@@ -35,16 +41,24 @@ void ESP_enter_sleep_mode(long miliseconds)
 // @request: HTTP request data.
 void ESP_get(char request[])
 {
+	Serial.print("ESP: AT+CIPMUX=1");
+
 	ESP.print("AT+CIPMUX=1");
 	ESP.print(CRLF);
 
 	delay(500);
+	Serial.println(" - DONE");
+
+	Serial.print("AT+CIPSTART=0,\"TCP\",\"api.thingspeak.com\",80");
 
 	ESP.print("AT+CIPSTART=0,\"TCP\",\"api.thingspeak.com\",80");
 	ESP.print(CRLF);
 	ESP_read();
 
 	delay(500);
+	Serial.println(" - DONE");
+
+	Serial.print("ESP: AT+CIPSEND=0,<request_data>");
 
 	ESP.print("AT+CIPSEND=0,");
 	ESP.print(strlen(request) + 6);
@@ -52,6 +66,9 @@ void ESP_get(char request[])
 	ESP_read();
 
 	delay(500);
+	Serial.println(" - DONE");
+
+	Serial.print("Send data");
 
 	ESP.print(request);
 	ESP.print(CRLF);
@@ -60,6 +77,7 @@ void ESP_get(char request[])
 	ESP_read();
 
 	delay(500);
+	Serial.println(" - DONE");
 }
 
 // Wait for the ESP to return data or until timeout.
@@ -76,11 +94,6 @@ void ESP_read()
 	}
 	
 	char data = (char)ESP.read();
-
-	if (DEBUGMODE)
-	{
-		Serial.print(data);
-	}
 
 	ESP_read();
 }
@@ -100,7 +113,7 @@ bool ESP_read_ok()
 
 	bool first = false;
 
-	while (1)
+	while(1)
 	{
 		if (!first)
 		{
@@ -111,9 +124,9 @@ bool ESP_read_ok()
 		}
 		else
 		{
-			return (char)ESP.read() == 'K';
+			return ((char)ESP.read() == 'K');
 		}
-
+		
 		while (!ESP.available())
 		{
 			if (millis() - timeoutWaitStart > REQUEST_TIMEOUT)
